@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Babylon.js sample code</title>
+    <!-- Babylon.js -->
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/babylon.max.js"></script>
+    <script src="https://cdn.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+    <script src="https://cdn.babylonjs.com/materialsLibrary/babylonjs.materials.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+    <script src="https://cdn.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+    <script src="https://cdn.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.js"></script>
+    <script src="https://cdn.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+    <script src="https://cdn.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.js"></script>
+    <script src="https://cdn.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+    <script src="https://cdn.babylonjs.com/serializers/babylonjs.serializers.js"></script>
+    <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+    <script src="https://cdn.babylonjs.com/gui/babylon.gui.js"></script>
+    <script src="https://cdn.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
+    <script src="https://cdn.babylonjs.com/inspector/babylon.inspector.bundle.max.js"></script>
+    <script src="https://cdn.babylonjs.com/viewer/babylon.viewer.js"></script>
+    <script src="https://cdn.babylonjs.com/viewer/babylon.viewer.max.js"></script>
+    <style>
+      html,
+      body {
+        overflow: hidden;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+
+      #renderCanvas {
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+      }
+    </style>
+  </head>
+
+  <body>
+    <canvas id="renderCanvas"></canvas>
+    <script>
+      var canvas = document.getElementById("renderCanvas");
+
+      var startRenderLoop = function (engine, canvas) {
+        engine.runRenderLoop(function () {
+          if (sceneToRender && sceneToRender.activeCamera) {
+            sceneToRender.render();
+          }
+        });
+      };
+
+      var engine = null;
+      var scene = null;
+      var sceneToRender = null;
+      var createDefaultEngine = function () {
+        return new BABYLON.Engine(canvas, true, {
+          preserveDrawingBuffer: true,
+          stencil: true,
+          disableWebGL2Support: false,
+        });
+      };
+      var createText = function (
+        text,
+        posX,
+        posY,
+        posZ,
+        size,
+        rotation,
+        scene
+      ) {
+        //data reporter
+        var outputplane = BABYLON.Mesh.CreatePlane(
+          "outputplane",
+          Math.max(size.x, size.y, size.z),
+          scene,
+          false
+        );
+
+        outputplane.material = new BABYLON.StandardMaterial(
+          "outputplane",
+          scene
+        );
+        outputplane.position = new BABYLON.Vector3(posX, posY, posZ);
+        outputplane.rotation = rotation;
+
+        var outputplaneTexture = new BABYLON.DynamicTexture(
+          "dynamic texture",
+          512,
+          scene,
+          true
+        );
+        outputplane.material.diffuseTexture = outputplaneTexture;
+        outputplane.material.specularColor = new BABYLON.Color3(0, 0, 0);
+        outputplane.material.emissiveColor = new BABYLON.Color3(1, 1, 1);
+        outputplane.material.backFaceCulling = false;
+
+        outputplaneTexture.drawText(
+          text,
+          null,
+          240,
+          "bold 80px verdana",
+          "#111"
+        );
+        outputplaneTexture.hasAlpha = true;
+
+        return outputplane;
+      };
+      var createScene = function () {
+        const scene = new BABYLON.Scene(engine);
+        // 背景顏色
+        scene.clearColor = new BABYLON.Color3(0.5, 0.5, 0.5);
+
+        // Creates, angles, distances and targets the camera
+        var camera = new BABYLON.ArcRotateCamera(
+          "Camera",
+          Math.PI,
+          20,
+          20,
+          new BABYLON.Vector3(0, 0, 0),
+          scene
+        );
+        // const camera = new BABYLON.ArcRotateCamera(
+        //   "StrategicCamera",
+        //   Math.PI / 3,
+        //   Math.PI / 3,
+        //   32,
+        //   BABYLON.Vector3.Zero(),
+        //   scene
+        // );
+
+        //adapt accordingly, escpecially panningSensibility
+        // camera.allowUpsideDown = false;
+        // camera.lowerBetaLimit = 0;
+        // camera.upperBetaLimit = Math.PI / 3;
+        // camera.lowerRadiusLimit = 2;
+        // camera.upperRadiusLimit = 48;
+        // camera.angularSensibility = 16000;
+        // camera.panningSensibility = 4000;
+        //-
+
+        // //IMPORTANT
+        // camera.inputs.removeByType("ArcRotateCameraKeyboardMoveInput");
+        // camera.inputs.add(
+        //   new KeyboardPanningInput(new BABYLON.Matrix(), BABYLON.Vector3.Zero())
+        // );
+        // //-
+
+        // const w = 85;
+        // const s = 83;
+        // const d = 68;
+        // const a = 65;
+
+        // camera.keysUp.push(w);
+        // camera.keysDown.push(s);
+        // camera.keysRight.push(d);
+        // camera.keysLeft.push(a);
+
+        // This positions the camera
+        camera.setPosition(new BABYLON.Vector3(0, 10, 40));
+
+        //相機旋轉
+        scene.activeCamera.alpha += 1 * Math.PI;
+
+        // This attaches the camera to the canvas
+        camera.attachControl(canvas, true);
+
+        const light = new BABYLON.HemisphericLight(
+          "light",
+          new BABYLON.Vector3(1, 1, 0)
+        );
+
+        // 材質
+        var woodMaterial = new BABYLON.StandardMaterial(name, scene);
+        var woodTexture = new BABYLON.WoodProceduralTexture(
+          name + "text",
+          10,
+          scene
+        );
+        woodTexture.ampScale = 1;
+        woodMaterial.diffuseTexture = woodTexture;
+
+        // 窗框
+        const box1 = BABYLON.MeshBuilder.CreateBox("box", {
+          height: 1,
+          width: 10,
+          depth: 1,
+        });
+        box1.position.x = 0;
+        box1.position.y = 0;
+        box1.position.z = 0;
+        box1.material = woodMaterial;
+        const box3 = BABYLON.MeshBuilder.CreateBox("box", {
+          height: 1,
+          width: 10,
+          depth: 1,
+        });
+        box3.position.x = 0;
+        box3.position.y = 10;
+        box3.position.z = 0;
+        box3.material = woodMaterial;
+        const box2 = BABYLON.MeshBuilder.CreateBox("box", {
+          height: 9,
+          width: 1,
+          depth: 1,
+        });
+        box2.position.x = -4.5;
+        box2.position.y = 5;
+        box2.position.z = 0;
+        box2.material = woodMaterial;
+        const box4 = BABYLON.MeshBuilder.CreateBox("box", {
+          height: 9,
+          width: 1,
+          depth: 1,
+        });
+        box4.position.x = 4.5;
+        box4.position.y = 5;
+        box4.position.z = 0;
+        box4.material = woodMaterial;
+
+        // 扇葉
+        var woodMaterial = new BABYLON.StandardMaterial(name, scene);
+        var woodTexture = new BABYLON.WoodProceduralTexture(
+          name + "text",
+          10,
+          scene
+        );
+        woodTexture.ampScale = 1;
+        woodMaterial.diffuseTexture = woodTexture;
+
+        // clone 元件
+        const fan0 = BABYLON.MeshBuilder.CreateBox("box", {
+          height: 1,
+          width: 8,
+          depth: 0.2,
+        });
+        fan0.position.x = 0;
+        fan0.position.y = 1.1;
+        fan0.position.z = 0;
+        // fan0.rotation.x=Math.PI/18;
+        fan0.material = woodMaterial;
+
+        // 總數
+        const mount = 8;
+        const places = [];
+        for (var i = 1; i <= mount; i++) {
+          places.push([11, 1.1 * i, 0, Math.PI / 18, woodMaterial]);
+        }
+        // 扇葉
+        const fan = [];
+
+        for (let i = 1; i < places.length; i++) {
+          fan[i] = fan0.createInstance("fan" + i);
+          fan[i].position.x = 0;
+          fan[i].position.y = places[i][1]; //擺放位置
+          fan[i].position.z = places[i][2];
+          fan[i].rotation.x = places[i][3];
+          fan[i].material = places[i][4];
+        }
+
+        // 線段紀錄
+        // =====================================
+
+        //boundingBox = 邊界框
+        //綁定box3 => 取得相對於整體的邊界框的中心座標 (0,0,0)
+        //centerWorld = {X: 0 Y: 0 Z: 0}
+        var meshPosCenter = box3.getBoundingInfo().boundingBox.centerWorld;
+        //綁定box3 => 取得相對於整體的邊界框的邊界座標 = model(width / height / depth) = (x/2,y/2,z/2) = (10/2, 1/2,1/2) = (5,0.5,0.5)
+        //sizeWorld = {X: 5 Y: 0.5 Z: 0.5}
+        var meshSize = box3.getBoundingInfo().boundingBox.extendSizeWorld;
+
+        //與目標的距離
+        var distance = 10;
+
+        // 中心x座標 + 邊界x座標 - (邊界座標x的1%) * 自訂距離
+        //取得線段x的右邊座標(中心(0,0)加上中心往右的數值) + 預留距離
+        //0 + 5 + (5/100) * 10 = 5.5
+        var xP = meshPosCenter.x + meshSize.x + (meshSize.x / 100) * distance;
+
+        //中心x座標 - 邊界x座標(此處座標x為負值) - (邊界座標x的1%) * 自訂距離
+        //取得線段x的左邊座標(中心(0,0)減去中心往左的數值) + 預留距離
+        //0 - 5 - (5/100) * 10 = -5.5
+        var xN = meshPosCenter.x - meshSize.x - (meshSize.x / 100) * distance;
+
+        var yP = meshPosCenter.y + meshSize.y + (meshSize.y / 100) * distance; // 0 + 0.5 + (0.5/100) * 10 = 0.55
+        var yN = meshPosCenter.y - meshSize.y - (meshSize.y / 100) * distance; // 0 - 0.5 - (0.5/100) * 10 = -0.55
+
+        var zP = meshPosCenter.z + meshSize.z + (meshSize.z / 100) * distance; // 0 + 0.5 + (0.5/100) * 10 = 0.55
+        var zN = meshPosCenter.z - meshSize.z - (meshSize.z / 100) * distance; // 0 - 0.5 - (0.5/100) * 10 = 0.55
+
+        //x軸寬度
+        var xLine = [
+          //p1 = (-5.5,-0.55,-0.55)
+          //p2 = (5.5,-0.55,-0.55)
+          new BABYLON.Vector3(xN, yN, zN),
+          new BABYLON.Vector3(xP, yN, zN),
+        ];
+
+        //y軸長度
+        var yLine = [
+          //p1 = (5.5,-0.55,-0.55)
+          //p2 = (5.5, 0.55,-0.55)
+          new BABYLON.Vector3(xP, yN, zN),
+          new BABYLON.Vector3(xP, yP + 10, zN),
+        ];
+
+        //z軸長度
+        var zLine = [
+          // p1 = (5.5, -0.55,-0.55)
+          // p2 = (5.5, -0.55, 0.55)
+          new BABYLON.Vector3(xP, yN, zN),
+          new BABYLON.Vector3(xP, yN, zP),
+        ];
+
+        //線座標
+        var lineCoordinates = [xLine, yLine, zLine];
+
+        //尺寸線
+        this.dimensionLines = BABYLON.MeshBuilder.CreateLineSystem(
+          "Lines",
+          { lines: lineCoordinates },
+          scene
+        );
+
+        //標線顏色
+        this.dimensionLines.color = new BABYLON.Color3(0, 0, 0);
+
+        //座標文字角度(翻轉角度) R = rotate
+        var deg = BABYLON.Tools.ToRadians(0);
+        var xR = { x: deg, y: 0, z: 0 };
+        var yR = { x: 0, y: -deg, z: deg };
+        var zR = { x: deg, y: 0, z: deg };
+
+        // createText(顯示文字,座標x,y,z,相對位置(?),角度,場景)
+        var xText = createText(
+          5.0 + " cm",
+          meshPosCenter.x,
+          -1.5,
+          zN,
+          meshSize, //{X: 5 Y: 0.5 Z: 0.5}
+          xR,
+          scene
+        );
+        // alert(xText.position.z); //-0.55
+        xText.position.z -=
+          xText.getBoundingInfo().boundingBox.extendSizeWorld.x / 2;
+        // alert(xText.position.z); //-18
+
+        var yText = createText(11.0 + " cm", 7, 5, zN, meshSize, yR, scene);
+
+        var zText = createText(
+          (meshSize.z / 1).toFixed(2) + " cm",
+          6,
+          yN,
+          meshPosCenter.z,
+          meshSize,
+          zR,
+          scene
+        );
+
+        zText.position.x =
+          zText.position.x +
+          xText.getBoundingInfo().boundingBox.extendSizeWorld.x / 2;
+
+        // ------------------------------------------------------------
+        // 控制器設定
+        // 控制器設定方法2
+        var advancedTexture =
+          BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+
+        //控制器
+        var panel = new BABYLON.GUI.StackPanel();
+        panel.width = "300px";
+        panel.fontSize = "20px";
+        // 水平對齊
+        panel.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        // 垂直對齊
+        panel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+        panel.background = "skyblue";
+        // panel.paddingBottom = "10px";
+        // panel.paddingLeft="50px" MARGIN 效果
+        advancedTexture.addControl(panel);
+
+        //checkbox
+        // var checkbox = new BABYLON.GUI.Checkbox();
+        // checkbox.width = "20px";
+        // checkbox.height = "20px";
+        // checkbox.isChecked = true;
+        // checkbox.color = "green";
+        // checkbox.onIsCheckedChangedObservable.add(function(value) {
+        //     if (box4) {
+        //         box4.useVertexColors = value;
+        //     }
+        // });
+
+        // //checkbox color
+        // var panelForCheckbox = BABYLON.GUI.Control.AddHeader(checkbox, "Vertex color", "180px", { isHorizontal: true, controlFirst: true});
+        // panelForCheckbox.color = "purple";
+        // panelForCheckbox.height = "20px";
+        // panelForCheckbox.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        // panel.addControl(panelForCheckbox);
+
+        //扇葉角度文字
+        var header = new BABYLON.GUI.TextBlock();
+        header.text = "扇葉角度 0 °";
+        header.height = "40px";
+        header.color = "#333";
+        header.textHorizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        header.left = "15px";
+        header.marginTop = "10px";
+
+        panel.addControl(header);
+
+        //扇葉角度調整器設定
+        var slider = new BABYLON.GUI.Slider();
+        slider.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        slider.minimum = 0;
+        slider.maximum = 2 * Math.PI;
+        slider.color = "white"; //移動鈕
+        slider.value = 0; //移動軸
+        slider.height = "20px";
+        slider.background = "#ccc";
+        slider.width = "250px";
+        slider.left = "15px";
+        slider.onValueChangedObservable.add(function (value) {
+          header.text =
+            "扇葉角度：" + (BABYLON.Tools.ToDegrees(value) | 0) + " °";
+          if (fan0) {
+            fan0.rotation.x = value;
+            for (let i = 1; i < places.length; i++) {
+              fan[i].rotation.x = value;
+            }
+          }
+        });
+        panel.addControl(slider);
+
+        // 窗框高
+        var textHeight = new BABYLON.GUI.TextBlock();
+        textHeight.text = "高度設定：";
+        textHeight.color = "#000";
+        textHeight.height = "40px";
+        textHeight.fontSize = 18;
+        textHeight.textHorizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        textHeight.left = "15px";
+        panel.addControl(textHeight);
+
+        // heightInput
+        var heightInput = new BABYLON.GUI.InputText("heightInput");
+        heightInput.width = "250px";
+        heightInput.maxWidth = 0.2;
+        heightInput.height = "35px";
+        heightInput.text = "10";
+        heightInput.color = "#fff";
+        heightInput.background = "#ccc";
+        heightInput.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        heightInput.left = "15px";
+        heightInput.top = "45px";
+        heightInput.onBeforeKeyAddObservable.add((input) => {
+          let key = input.currentKey;
+          if (key < "0" || key > "9") {
+            intput.addKey = false;
+          }
+        });
+
+        var heightV = heightInput.text;
+        scene.registerBeforeRender(function () {
+          if (heightInput.text != heightV) {
+            let scale = parseInt(heightInput.text) * 0.1;
+            box2.scaling = new BABYLON.Vector3(1, scale, 1);
+            box4.scaling = new BABYLON.Vector3(1, scale, 1);
+          }
+        });
+        panel.addControl(heightInput);
+
+        // 窗框寬
+        var textWidth = new BABYLON.GUI.TextBlock();
+        textWidth.text = "寬度設定：";
+        textWidth.color = "#000";
+        textWidth.height = "40px";
+        textWidth.fontSize = 18;
+        textWidth.textHorizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        textWidth.left = "15px";
+        panel.addControl(textWidth);
+
+        // widthInput
+        var widthInput = new BABYLON.GUI.InputText("widthInput");
+        widthInput.width = "250px";
+        widthInput.maxWidth = 0.2;
+        widthInput.height = "35px";
+        widthInput.text = "10";
+        widthInput.color = "#fff";
+        widthInput.background = "#ccc";
+        widthInput.horizontalAlignment =
+          BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        widthInput.left = "15px";
+        widthInput.marginBottom = "10px";
+        widthInput.onBeforeKeyAddObservable.add((input) => {
+          let key = input.currentKey;
+          if (key < "0" || key > "9") {
+            intput.addKey = false;
+          }
+        });
+
+        var winWidth = widthInput.text;
+        scene.registerBeforeRender(function () {
+          if (widthInput.text != winWidth) {
+            let scale = parseInt(widthInput.text) * 0.1;
+            box1.scaling = new BABYLON.Vector3(scale, 1, 1);
+            box3.scaling = new BABYLON.Vector3(scale, 1, 1);
+          }
+        });
+        panel.addControl(widthInput);
+        // --------------------------------------------------------------------
+        return scene;
+      };
+
+      // ============================================================================================================
+      window.initFunction = async function () {
+        var asyncEngineCreation = async function () {
+          try {
+            return createDefaultEngine();
+          } catch (e) {
+            console.log(
+              "the available createEngine function failed. Creating the default engine instead"
+            );
+            return createDefaultEngine();
+          }
+        };
+
+        window.engine = await asyncEngineCreation();
+        if (!engine) throw "engine should not be null.";
+        startRenderLoop(engine, canvas);
+        window.scene = createScene();
+      };
+      initFunction().then(() => {
+        sceneToRender = scene;
+      });
+
+      // Resize
+      window.addEventListener("resize", function () {
+        engine.resize();
+      });
+    </script>
+  </body>
+</html>
